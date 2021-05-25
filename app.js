@@ -73,16 +73,16 @@ function getAccessToken(oAuth2Client, callback) {
 function insertEvents(auth) {
   const calendar = google.calendar({ version: 'v3', auth });
   var event = {
-    summary: 'Google I/O 2015',
-    location: '800 Howard St., San Francisco, CA 94103',
-    description: "A chance to hear more about Google's developer products.",
+    summary: 'Dont Drive Your Boar Asshole!',
+    location: 'SOME WHERE IN FL',
+    description: "None Needed",
     start: {
       dateTime: '2021-05-28T09:00:00-07:00',
-      timeZone: 'America/Los_Angeles'
+      timeZone: 'America/New_York'
     },
     end: {
       dateTime: '2021-05-28T17:00:00-07:00',
-      timeZone: 'America/Los_Angeles'
+      timeZone: 'America/New_York'
     },
     recurrence: ['RRULE:FREQ=DAILY;COUNT=2'],
     attendees: [{ email: 'lpage@example.com' }, { email: 'sbrin@example.com' }],
@@ -98,7 +98,7 @@ function insertEvents(auth) {
   calendar.events.insert(
     {
       auth: auth,
-      calendarId: 'primary',
+      calendarId: '26cb0kkf1du7ol3dtgd5fcpvc0@group.calendar.google.com',
       resource: event
     },
     function(err, event) {
