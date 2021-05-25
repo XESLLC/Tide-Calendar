@@ -1,3 +1,5 @@
+## Tide Calendar App creates tide schedule for boats in Florida Intracoastal waterway. 
+
 https://stackoverflow.com/questions/65756266/error-403-access-denied-the-developer-hasn-t-given-you-access-to-this-app-despi
 
 // look for access token(code) in url params.... see below
@@ -11,4 +13,6 @@ Time Zones
 America/New_York
 America/Chicago
 America/Denver
-America/Los_Angeles 
+America/Los_Angeles
+
+git ignore hides credentials!!!
