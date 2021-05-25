@@ -73,8 +73,8 @@ function getAccessToken(oAuth2Client, callback) {
 function insertEvents(auth) {
   const calendar = google.calendar({ version: 'v3', auth });
   var event = {
-    summary: 'Dont Drive Your Boar Asshole!',
-    location: 'SOME WHERE IN FL',
+    summary: 'Dont Drive Your Boat Asshole!',
+    location: 'SOMEWHERE IN FL',
     description: "None Needed",
     start: {
       dateTime: '2021-05-28T09:00:00-07:00',
@@ -85,7 +85,7 @@ function insertEvents(auth) {
       timeZone: 'America/New_York'
     },
     recurrence: ['RRULE:FREQ=DAILY;COUNT=2'],
-    attendees: [{ email: 'lpage@example.com' }, { email: 'sbrin@example.com' }],
+    attendees: [{ email: 'lpage@example.com' }, { email: 'sbrin@example.com' }], // this could also be list of licensed users. 
     reminders: {
       useDefault: false,
       overrides: [
