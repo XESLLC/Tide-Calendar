@@ -1,0 +1,4 @@
+$ cat .gitignore
+# ignore json credential files,
+   client_secret.json
+   credentials.json
