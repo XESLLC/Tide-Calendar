@@ -1,4 +1,4 @@
-## Tide Calendar App creates tide schedule for boats in Florida Intracoastal waterway. 
+## Tide Calendar App creates tide schedule for boats in Florida Intracoastal waterway.
 
 https://stackoverflow.com/questions/65756266/error-403-access-denied-the-developer-hasn-t-given-you-access-to-this-app-despi
 
@@ -16,3 +16,8 @@ America/Denver
 America/Los_Angeles
 
 git ignore hides credentials!!!
+
+
+app.js makes all calculations in inches, milliseconds and minutes
+all time calcs in UTC
+xml from noa adjusted for daylight savings - see screen shot in directory
