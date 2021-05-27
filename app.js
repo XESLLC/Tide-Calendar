@@ -3,6 +3,8 @@ const readline = require('readline');
 const { google } = require('googleapis');
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 const TOKEN_PATH = 'credentials.json';
+const createEvent = require('./util').createEvent
+const calendarId = '9qn0k4a30hkb1mqlel7nrhf6cs@group.calendar.google.com'
 // asset and channel characteristics
 // calculation made all in inches, milliseconds and minutes
 // all time calcs in UTC
@@ -18,6 +20,7 @@ const delayFromNOA = 0
 const noaTideLocation = 'BOYNTON BEACH, FL'
 const noaTideLocationId = '8722706'
 const tideArray = require('./xmlToArray').tideArray;
+const eventColor = 3; //1 blue,, 2 green, 3 purple, 4 red, 5 yellow, 6 orange, 7 turquoise, 8 gray, 9 bold blue, 10 bold green, 11 bold red
 
 // Load client secrets from a local file.
 try {
@@ -87,89 +90,99 @@ function getAccessToken(oAuth2Client, callback) {
   });
 }
 
+async function insertEvents (auth) {
+    console.log('Starting tide mapping and algo')
 
-console.log('Starting tide mapping and algo')
+    const calendar = google.calendar({ version: 'v3', auth });
 
-const tideMap = tideArray.map((prediction, index, array) => {
-    if (index == 0 || !array[index+1] || prediction.highlow[0] !== 'L' ) {
-        return {}
-    } // if first or last prediction dont create valid tideMap object
-    let dateAndTimeToUtcMilli = (dateArray, timeArray) => {
-      const timeParts = timeArray[0].split(":") //split hours and minutes
-      const millisecondsFromDayStart = (( Number(timeParts[0])) * (60000 * 60)) + ( Number(timeParts[1]) * 60000)
-      return new Date(dateArray[0]).getTime() + millisecondsFromDayStart // milliseconds utc
-    }
-    // times in millisconds
-    const timeAtPrevHigh = dateAndTimeToUtcMilli(array[index-1].date, array[index-1].time)
-    const timeAtLow = dateAndTimeToUtcMilli(prediction.date, prediction.time)
-    const timeAtNextHigh = dateAndTimeToUtcMilli(array[index+1].date, array[index+1].time)
-
-    // convert to inches with respect to mean 0 low tide
-    const heightAtPrevHighAboveMeanZero =  Math.round((Number(array[index-1].pred[0]) * 12) * 100) / 100
-    const heightAtCurrLowBelowMeanZero = Math.round((Number(prediction.pred[0]) * 12) * 100) / 100
-    const heightAtNextHighAboveMeanZero = Math.round((Number(array[index+1].pred[0]) * 12) * 100) / 100
-
-    // tide rate milliseconds/inch
-    const prevTideRate = Math.round((timeAtLow - timeAtPrevHigh)/(heightAtPrevHighAboveMeanZero - heightAtCurrLowBelowMeanZero)*100)/100
-    const nextTideRate = Math.round((timeAtNextHigh - timeAtLow)/(heightAtNextHighAboveMeanZero - heightAtCurrLowBelowMeanZero)*100)/100
-
-    const neededTideIncreasefromLow = draftOfBoat - lowestInPath0MeanTide - (Number(prediction.pred[0]) * 12)
-
-    const prevStopOperatingTime = neededTideIncreasefromLow * prevTideRate //millisconds to stop operating before low tide
-    const endStopOperatingTime = neededTideIncreasefromLow * nextTideRate // millisconds from low tide cant operate
-
-    const eventDontRunStartTime = new Date(timeAtLow - prevStopOperatingTime - (6 * 60 * 60 * 1000))
-    const eventDontRunEndTime = new Date(timeAtLow + endStopOperatingTime - (6 * 60 * 60 * 1000))
-
-    return {
-      evtdontRunStartTime: eventDontRunStartTime,
-      eventdontRunEndTime: eventDontRunEndTime
-    }
-}).filter((noOpRange) => {
-    return !!noOpRange.evtdontRunStartTime
-})
-
-for (const tideEvent of tideMap) {
-    function insertEvents(auth) {
-      const calendar = google.calendar({ version: 'v3', auth });
-      var event = {
-        summary: 'Dont Drive Your Boat Asshole!',
-        location: 'SOMEWHERE IN FL',
-        description: "None Needed",
-        start: {
-          dateTime: '2021-05-28T09:00:00',
-          timeZone: 'America/New_York'
-        },
-        end: {
-          dateTime: '2021-05-28T17:00:00',
-          timeZone: 'America/New_York'
-        },
-        // recurrence: ['RRULE:FREQ=DAILY;COUNT=2'], creating a single event looping throught the tide array for each event
-        //attendees: [{ email: 'lpage@example.com' }, { email: 'sbrin@example.com' }], // this could also be list of licensed users
-        reminders: {
-          useDefault: false,
-          overrides: [
-            { method: 'email', minutes: 5 },
-            { method: 'popup', minutes: 5 }
-          ]
+    const tideMap = tideArray.map((prediction, index, array) => {
+        if (index == 0 || !array[index+1] || prediction.highlow[0] !== 'L' ) {
+            return {}
+        } // if first or last prediction dont create valid tideMap object
+        let dateAndTimeToUtcMilli = (dateArray, timeArray) => {
+          const timeParts = timeArray[0].split(":") //split hours and minutes
+          const millisecondsFromDayStart = (( Number(timeParts[0])) * (60000 * 60)) + ( Number(timeParts[1]) * 60000)
+          return new Date(dateArray[0]).getTime() + millisecondsFromDayStart // milliseconds utc
         }
-      };
+        // times in millisconds
+        const timeAtPrevHigh = dateAndTimeToUtcMilli(array[index-1].date, array[index-1].time)
+        const timeAtLow = dateAndTimeToUtcMilli(prediction.date, prediction.time)
+        const timeAtNextHigh = dateAndTimeToUtcMilli(array[index+1].date, array[index+1].time)
 
-      // calendar.events.insert(
-      //   {
-      //     auth: auth,
-      //     calendarId: '26cb0kkf1du7ol3dtgd5fcpvc0@group.calendar.google.com',
-      //     resource: event
-      //   },
-      //   function(err, event) {
-      //     if (err) {
-      //       console.log(
-      //         'There was an error contacting the Calendar service: ' + err
-      //       );
-      //       return;
-      //     }
-      //     console.log('Event created: %s', event.data.htmlLink);
-      //   }
-      // );
+        // convert to inches with respect to mean 0 low tide
+        const heightAtPrevHighAboveMeanZero =  Math.round((Number(array[index-1].pred[0]) * 12) * 100) / 100
+        const heightAtCurrLowBelowMeanZero = Math.round((Number(prediction.pred[0]) * 12) * 100) / 100
+        const heightAtNextHighAboveMeanZero = Math.round((Number(array[index+1].pred[0]) * 12) * 100) / 100
+
+        // tide rate milliseconds/inch
+        const prevTideRate = Math.round((timeAtLow - timeAtPrevHigh)/(heightAtPrevHighAboveMeanZero - heightAtCurrLowBelowMeanZero)*100)/100
+        const nextTideRate = Math.round((timeAtNextHigh - timeAtLow)/(heightAtNextHighAboveMeanZero - heightAtCurrLowBelowMeanZero)*100)/100
+
+        const neededTideIncreasefromLow = draftOfBoat - lowestInPath0MeanTide - (Number(prediction.pred[0]) * 12)
+
+        const prevStopOperatingTime = neededTideIncreasefromLow * prevTideRate //millisconds to stop operating before low tide
+        const endStopOperatingTime = neededTideIncreasefromLow * nextTideRate // millisconds from low tide cant operate
+
+        const eventDontRunStartTime = new Date(timeAtLow - prevStopOperatingTime - (6 * 60 * 60 * 1000))
+        const eventDontRunEndTime = new Date(timeAtLow + endStopOperatingTime - (6 * 60 * 60 * 1000))
+
+        return {
+          evtdontRunStartTime: eventDontRunStartTime,
+          eventdontRunEndTime: eventDontRunEndTime
+        }
+    }).filter((noOpRange) => {
+        return !!noOpRange.evtdontRunStartTime
+    })
+
+    console.log('TideMappingComplete - total tide events = ', tideMap.length);
+
+    for (const tideEvent of tideMap) {
+
+        const dateTimeStart = tideEvent.evtdontRunStartTime.toISOString().split(".")[0]
+        const dateTimeEnd = tideEvent.eventdontRunEndTime.toISOString().split(".")[0]
+
+        const event = {
+            colorId: eventColor,
+            summary: (draftOfBoat/12) + ' FOOT DRAFT VESSLES !!!DO NOT OPERATE!!!',
+            location: nameOfPath + ' Channel',
+            description: "Do not operate vessels with a draft of " + (draftOfBoat/12) + " feet during this time in the ",
+            start: {
+                dateTime: dateTimeStart,
+                timeZone: 'America/New_York'
+            },
+            end: {
+                dateTime: dateTimeEnd,
+                timeZone: 'America/New_York'
+            },
+            // recurrence: ['RRULE:FREQ=DAILY;COUNT=2'], creating a single event looping throught the tide array for each event
+            //attendees: [{ email: 'lpage@example.com' }, { email: 'sbrin@example.com' }], // this could also be list of licensed users
+            reminders: {
+                useDefault: false,
+                overrides: [
+                    { method: 'email', minutes: 5 },
+                    { method: 'popup', minutes: 5 }
+                ]
+            }
+        };
+        await createEvent(calendar, auth, calendarId, event);
+
+
+        function resolveAfter2Seconds() {
+          return new Promise(resolve => {
+            setTimeout(() => {
+              resolve('resolved');
+            }, 1000);
+          });
+        }
+
+        async function asyncCall() {
+          console.log('calling');
+          const result = await resolveAfter2Seconds();
+          console.log(result);
+          // expected output: "resolved"
+        }
+
+        asyncCall();
+
     }
 }
