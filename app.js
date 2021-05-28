@@ -104,10 +104,12 @@ async function insertEvents (auth) {
           const millisecondsFromDayStart = (( Number(timeParts[0])) * (60000 * 60)) + ( Number(timeParts[1]) * 60000)
           return new Date(dateArray[0]).getTime() + millisecondsFromDayStart // milliseconds utc
         }
-        // times in millisconds
+        // times in millisconds UTC
         const timeAtPrevHigh = dateAndTimeToUtcMilli(array[index-1].date, array[index-1].time)
         const timeAtLow = dateAndTimeToUtcMilli(prediction.date, prediction.time)
         const timeAtNextHigh = dateAndTimeToUtcMilli(array[index+1].date, array[index+1].time)
+
+        console.log(new Date(timeAtPrevHigh), array[index-1].time , new Date(timeAtLow), prediction.time, array[index+1].time,  new Date(timeAtNextHigh) )
 
         // convert to inches with respect to mean 0 low tide
         const heightAtPrevHighAboveMeanZero =  Math.round((Number(array[index-1].pred[0]) * 12) * 100) / 100
@@ -118,18 +120,21 @@ async function insertEvents (auth) {
         const prevTideRate = Math.round((timeAtLow - timeAtPrevHigh)/(heightAtPrevHighAboveMeanZero - heightAtCurrLowBelowMeanZero)*100)/100
         const nextTideRate = Math.round((timeAtNextHigh - timeAtLow)/(heightAtNextHighAboveMeanZero - heightAtCurrLowBelowMeanZero)*100)/100
 
-        const neededTideIncreasefromLow = draftOfBoat - lowestInPath0MeanTide - (Number(prediction.pred[0]) * 12)
+
+        const neededTideIncreasefromLow = Math.round((draftOfBoat - lowestInPath0MeanTide - (Number(prediction.pred[0]) * 12))*100)/100
 
         const prevStopOperatingTime = neededTideIncreasefromLow * prevTideRate //millisconds to stop operating before low tide
         const endStopOperatingTime = neededTideIncreasefromLow * nextTideRate // millisconds from low tide cant operate
 
         const eventDontRunStartTime = new Date(timeAtLow - prevStopOperatingTime - (6 * 60 * 60 * 1000))
-        const eventDontRunEndTime = new Date(timeAtLow + endStopOperatingTime - (6 * 60 * 60 * 1000))
+        const eventDontRunEndTime = new Date(timeAtLow + endStopOperatingTime - (6  * 60 * 60 * 1000))
 
-        return {
+        const resultSched =  {
           evtdontRunStartTime: eventDontRunStartTime,
           eventdontRunEndTime: eventDontRunEndTime
         }
+        console.log("resultSched", resultSched);
+        return resultSched
     }).filter((noOpRange) => {
         return !!noOpRange.evtdontRunStartTime
     })
@@ -145,7 +150,8 @@ async function insertEvents (auth) {
             colorId: eventColor,
             summary: (draftOfBoat/12) + ' FOOT DRAFT VESSLES !!!DO NOT OPERATE!!!',
             location: nameOfPath + ' Channel',
-            description: "Do not operate vessels with a draft of " + (draftOfBoat/12) + " feet during this time in the ",
+            description: "Do not operate vessels with a draft of " + (draftOfBoat/12) + " feet during this time in the " + nameOfPath +
+            " channel. This calendar is only a estimate of local tide conditions. All tide conditions should be verified locally by a qualified ship captian or mate. Never substitute this calendar for USCG required calcuations for operating a vessel in these waters. The purpose of this Calendar is to suppot safe planning vessel operations - they should never support the actual operation of a vessel. NOT FOR NAVIGATIONAL PURPOSES",
             start: {
                 dateTime: dateTimeStart,
                 timeZone: 'America/New_York'
@@ -164,7 +170,7 @@ async function insertEvents (auth) {
                 ]
             }
         };
-        await createEvent(calendar, auth, calendarId, event);
+        // await createEvent(calendar, auth, calendarId, event);
 
 
         function resolveAfter2Seconds() {
@@ -176,9 +182,9 @@ async function insertEvents (auth) {
         }
 
         async function asyncCall() {
-          console.log('calling');
+          // console.log('calling');
           const result = await resolveAfter2Seconds();
-          console.log(result);
+          // console.log(result);
           // expected output: "resolved"
         }
 

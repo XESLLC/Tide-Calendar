@@ -8,7 +8,6 @@ let createEvent = async (calendar, auth, calendarId, event) => {
             resource: event
         }
     );
-   // slow speed of event creation to meet api requirements ??
 }
 
 module.exports.createEvent = createEvent
