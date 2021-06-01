@@ -4,7 +4,14 @@ const { google } = require('googleapis');
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 const TOKEN_PATH = 'credentials.json';
 const createEvent = require('./util').createEvent
-const calendarId = '9qn0k4a30hkb1mqlel7nrhf6cs@group.calendar.google.com'
+
+const sleep = (milliseconds) => {
+  console.log('slowing loop');
+  console.log('creating event');
+  return new Promise(resolve => setTimeout(resolve, milliseconds))
+} //Slow the loop for googleapi
+
+
 // asset and channel characteristics
 // calculation made all in inches, milliseconds and minutes
 // all time calcs in UTC
@@ -13,15 +20,16 @@ const calendarId = '9qn0k4a30hkb1mqlel7nrhf6cs@group.calendar.google.com'
 
 // asset and channel characteristics
 // calculation made all in inches and minutes
-const draftOfBoat = 5 * 12 // convert to inches
+const calendarId = '' // change this
+const draftOfBoat = 6 * 12 // convert to inches // change this
 const lowestInPath0MeanTide = 3.5 * 12 // convert to inches
 const nameOfPath = 'Mananlapan'
 const delayFromNOA = 0
 const noaTideLocation = 'BOYNTON BEACH, FL'
 const noaTideLocationId = '8722706'
 const tideArray = require('./xmlToArray').tideArray;
-const eventColor = 3; //1 blue,, 2 green, 3 purple, 4 red, 5 yellow, 6 orange, 7 turquoise, 8 gray, 9 bold blue, 10 bold green, 11 bold red
-
+const eventColor = 6; //1 blue,, 2 green, 3 purple, 4 red, 5 yellow, 6 orange, 7 turquoise, 8 gray, 9 bold blue, 10 bold green, 11 bold red
+// chang the color above
 // Load client secrets from a local file.
 try {
   const content = fs.readFileSync('client_secret.json');
@@ -126,8 +134,28 @@ async function insertEvents (auth) {
         const prevStopOperatingTime = neededTideIncreasefromLow * prevTideRate //millisconds to stop operating before low tide
         const endStopOperatingTime = neededTideIncreasefromLow * nextTideRate // millisconds from low tide cant operate
 
-        const eventDontRunStartTime = new Date(timeAtLow - prevStopOperatingTime - (6 * 60 * 60 * 1000))
-        const eventDontRunEndTime = new Date(timeAtLow + endStopOperatingTime - (6  * 60 * 60 * 1000))
+        Date.prototype.stdTimezoneOffset = function () {
+            var jan = new Date(this.getFullYear(), 0, 1);
+            var jul = new Date(this.getFullYear(), 6, 1);
+            return Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+        }
+
+        Date.prototype.isDstObserved = function () {
+            return this.getTimezoneOffset() < this.stdTimezoneOffset();
+        }
+
+        const today = new Date(prediction.date);
+
+        const adjustForDLSInMilliseconds = () => {
+            if (today.isDstObserved()) {
+              return (1 * 60 * 60 * 1000) // adjust by 1 hour
+            }
+            return 0
+
+        }
+        console.log("adjustForDLSInMilliseconds", adjustForDLSInMilliseconds());
+        const eventDontRunStartTime = new Date(timeAtLow - prevStopOperatingTime - (5 * 60 * 60 * 1000) + adjustForDLSInMilliseconds())
+        const eventDontRunEndTime = new Date(timeAtLow + endStopOperatingTime - (5  * 60 * 60 * 1000) + adjustForDLSInMilliseconds())
 
         const resultSched =  {
           evtdontRunStartTime: eventDontRunStartTime,
@@ -140,8 +168,10 @@ async function insertEvents (auth) {
     })
 
     console.log('TideMappingComplete - total tide events = ', tideMap.length);
+    console.log('Starting Event Creation');
 
     for (const tideEvent of tideMap) {
+        // const time = (inputTime) => {}
 
         const dateTimeStart = tideEvent.evtdontRunStartTime.toISOString().split(".")[0]
         const dateTimeEnd = tideEvent.eventdontRunEndTime.toISOString().split(".")[0]
@@ -151,7 +181,7 @@ async function insertEvents (auth) {
             summary: (draftOfBoat/12) + ' FOOT DRAFT VESSLES !!!DO NOT OPERATE!!!',
             location: nameOfPath + ' Channel',
             description: "Do not operate vessels with a draft of " + (draftOfBoat/12) + " feet during this time in the " + nameOfPath +
-            " channel. This calendar is only a estimate of local tide conditions. All tide conditions should be verified locally by a qualified ship captian or mate. Never substitute this calendar for USCG required calcuations for operating a vessel in these waters. The purpose of this Calendar is to suppot safe planning vessel operations - they should never support the actual operation of a vessel. NOT FOR NAVIGATIONAL PURPOSES",
+            " channel. This calendar is only a estimate of local tide conditions. All tide conditions should be verified locally by a qualified ship captain or mate. Never substitute this calendar for USCG required calculations for operating a vessel in these waters. The purpose of this Calendar is to support safe planning vessel operations - they should never support the actual operation of a vessel. NOT FOR NAVIGATIONAL PURPOSES",
             start: {
                 dateTime: dateTimeStart,
                 timeZone: 'America/New_York'
@@ -170,25 +200,9 @@ async function insertEvents (auth) {
                 ]
             }
         };
-        // await createEvent(calendar, auth, calendarId, event);
+        await sleep(100)
 
-
-        function resolveAfter2Seconds() {
-          return new Promise(resolve => {
-            setTimeout(() => {
-              resolve('resolved');
-            }, 1000);
-          });
-        }
-
-        async function asyncCall() {
-          // console.log('calling');
-          const result = await resolveAfter2Seconds();
-          // console.log(result);
-          // expected output: "resolved"
-        }
-
-        asyncCall();
+        // await createEvent(calendar, auth, calendarId, event) // comented out to secure app from accidential event Creation
 
     }
 }
